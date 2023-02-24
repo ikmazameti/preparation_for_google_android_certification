@@ -1,37 +1,54 @@
-#SharedPreferences Methods
+# Room
+1. LiveData: A data holder class that can be observed. Always holds/caches the latest version of data, and notifies its observers when data has changed. LiveData is lifecycle aware. UI components just observe relevant data and don't stop or resume observation. LiveData automatically manages all of this since it's aware of the relevant lifecycle status changes while observing.
 
-Let’s look at some important methods for SharedPreferences.
+2. ViewModel: Acts as a communication center between the Repository (data) and the UI. The UI no longer needs to worry about the origin of the data. ViewModel instances survive Activity/Fragment recreation.
 
-** getSharedPreferences(String, int) method is used to retrieve an instance of the SharedPreferences. Here String is the name of the SharedPreferences file and int is the Context passed.
-** The SharedPreferences.Editor() is used to edit values in the SharedPreferences.
-**We can call commit() or apply() to save the values in the SharedPreferences file. 
-The commit() saves the values immediately whereas apply() saves the values asynchronously.
+3. Repository: A class that you create that is primarily used to manage multiple data sources.
 
-1. create the container - getSharedPreferences(String, int)
-2. open the container - SharedPreferences.Editor()
-3. put/remove items in/from the container eg. editor.putString("username","Anupam") sharedPreference.getString("username","defaultName")
-4. cover the container - commit() or apply()
-5. empty container/remove just one record - editor.clear() editor.remove("username")
 
-Good Practices
+## Observing database changes
 
-1. Save preferences in onPause()
-2. Name your shared preferences file the same name as the package name of your app.
-3. The commit() method is discouraged as it can block other operations.
+When data changes, you usually want to take some action, such as displaying the updated data in the UI. 
+This means you have to observe the data so when it changes, you can react.
 
-SharedPreferences vs onSaveInstanceState
-1. If you want to fill once and keep the data even if the app gets killed, use SharedPreferences.
-2. If it's volatile data that will have to be reentered differently some other time (i.e., days later), then use onSavedInstanceState.
-3. SharedPreferences
-Use for things that should always be remembered, no matter if the phone is turned off (eg for settings chosen in the settings screen of your app
-4. onSavedInstanceState
-Use this for remembering things about the current state of your activity such as the currently selected tab on the screen. This allows you to recreate the same state after a rotation or if the app was killed due to low memory.
-The things saved in onSaveInstanceState will be forgotten after reboot, and when starting a new instance of an activity they will not be passed, so they are only for remembering the state of the activity
-5. onRetainNonConfigurationInstance
-Use this for storing objects which take a long time to load so that you don't have to load them again when the phone is rotated.
-6. Shared preferences	Saved instance state
-   Persists across user sessions, even if your app is stopped and restarted, or if the device is rebooted.	Preserves state data across activity instances in the same user session.
-   Used for data that should be remembered across user sessions, such as a user's preferred settings or their game score.	Used for data that should not be remembered across sessions, such as the currently selected tab, or any current state of an activity.
-   Represented by a small number of key/value pairs.	Represented by a small number of key/value pairs.
-   Data is private to the app.	Data is private to the app.
-   Common use is to store user preferences.	Common use is to recreate state after the device has been rotated.
+To observe data changes you will use **Flow** from kotlinx-coroutines. Use a return value of type Flow in 
+your method description, and Room generates all necessary code to update the Flow when the database is updated.
+
+## Repository
+A repository class abstracts access to multiple data sources. 
+
+### Why use a Repository?
+A Repository manages queries and allows you to use multiple backends. In the most common example, 
+the Repository implements the logic for deciding whether to fetch data from a network or use results 
+cached in a local database.
+
+## ViewModel
+The ViewModel's role is to provide data to the UI and survive configuration changes. 
+A ViewModel acts as a communication center between the Repository and the UI. You can also use a 
+ViewModel to share data between fragments. The ViewModel is part of the lifecycle library.
+
+### Why use a ViewModel?
+A ViewModel holds your app's UI data in a lifecycle-conscious way that survives configuration changes. 
+Separating your app's UI data from your Activity and Fragment classes lets you better follow the single 
+responsibility principle: Your activities and fragments are responsible for drawing data to the screen,
+while your ViewModel can take care of holding and processing all the data needed for the UI.
+
+### LiveData and ViewModel
+LiveData is an observable data holder - you can get notified every time the data changes. Unlike Flow, 
+LiveData is lifecycle aware, meaning that it will respect the lifecycle of other components like Activity
+or Fragment. LiveData automatically stops or resumes observation depending on the lifecycle of the 
+component that listens for changes. This makes LiveData the perfect component to be used for for changeable 
+data that the UI will use or display.
+
+The ViewModel will transform the data from the Repository, from Flow to LiveData and expose the list of 
+words as LiveData to the UI. This ensures that every time the data changes in the database, your UI is automatically updated.
+
+### viewModelScope
+In Kotlin, all coroutines run inside a CoroutineScope. A scope controls the lifetime of coroutines through 
+its job. When you cancel the job of a scope, it cancels all coroutines started in that scope.
+
+The AndroidX lifecycle-viewmodel-ktx library adds a viewModelScope as an extension function of the ViewModel 
+class, enabling you to work with scopes.
+
+To find out more about working with coroutines in the ViewModel, check out Step 5 of the Using Kotlin 
+Coroutines in your Android App codelab or the Easy Coroutines in Android: viewModelScope blogpost.

@@ -1,7 +1,7 @@
 <resources>
     <!-- Base application theme. -->
-    <style name="Theme.AndroidlySharedPreferences" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <!-- Primary brand color. -->
+    <style name="Theme.AndroidlySharedPreferences" parent="Theme.MaterialComponents.Light.DarkActionBar">
+    <!-- Primary brand color. -->
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>
         <item name="colorOnPrimary">@color/white</item>
@@ -24,6 +24,16 @@
     <!-- Colored button styles -->
     <style name="AppTheme.Button.Colored" parent="Theme.AndroidlySharedPreferences.Button">
         <item name="android:textColor">@android:color/white</item>
+    </style>
+
+
+    <!-- The default font for RecyclerView items is too small.
+    The margin is a simple delimiter between the words. -->
+    <style name="word_title">
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:paddingLeft">8dp</item>
+        <item name="android:background">@android:color/holo_orange_light</item>
+        <item name="android:textAppearance">@android:style/TextAppearance.Large</item>
     </style>
 
 </resources>

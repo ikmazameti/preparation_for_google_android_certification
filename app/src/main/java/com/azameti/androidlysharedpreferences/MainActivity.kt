@@ -1,110 +1,62 @@
 package com.azameti.androidlysharedpreferences
 
-import android.content.Context
-import android.content.SharedPreferences
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
-import android.preference.PreferenceManager
-import android.view.View
-import android.widget.Button
-import android.widget.EditText
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.azameti.androidlysharedpreferences.PreferenceHelper.clearValues
-import com.azameti.androidlysharedpreferences.PreferenceHelper.customPreference
-import com.azameti.androidlysharedpreferences.PreferenceHelper.defaultPreference
-import com.azameti.androidlysharedpreferences.PreferenceHelper.password
-import com.azameti.androidlysharedpreferences.PreferenceHelper.userId
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import androidx.activity.viewModels
 
 
-class MainActivity : AppCompatActivity(), View.OnClickListener {
-    lateinit var btnSave: Button
-    lateinit var btnShow: Button
-    lateinit var btnClear: Button
-    lateinit var btnShowDefault: Button
-    lateinit var inPassword: EditText
-    lateinit var inUserId: EditText
-    val CUSTOM_PREF_NAME = "User_Pref_Data"
+class MainActivity : AppCompatActivity() {
+    private val newWordActivityRequestCode = 1
+
+    private val wordViewModel: WordViewModel by viewModels {
+        WordViewModelFactory((application as WordsApplication).repository)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        btnSave = findViewById(R.id.btnSave)
-        btnShow = findViewById(R.id.btnShow)
-        btnClear = findViewById(R.id.btnClear)
-        btnShowDefault = findViewById(R.id.btnShowDefault)
-        inUserId = findViewById(R.id.inUserId)
-        inPassword = findViewById(R.id.inPassword)
+
+        val fab = findViewById<FloatingActionButton>(R.id.fab)
+        fab.setOnClickListener {
+            val intent = Intent(this@MainActivity, NewWordActivity::class.java)
+            startActivityForResult(intent, newWordActivityRequestCode)
+        }
 
 
-        btnSave.setOnClickListener(this)
-        btnClear.setOnClickListener(this)
-        btnShow.setOnClickListener(this)
-        btnShowDefault.setOnClickListener(this)
+        val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
+        val adapter = WordListAdapter()
+        recyclerView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
+        wordViewModel.allWords.observe(this) { words ->
+            // Update the cached copy of the words in the adapter.
+            words?.let { adapter.submitList(it) }
+        }
+
 
     }
 
-    override fun onClick(v: View?) {
-        val prefs = customPreference(this, CUSTOM_PREF_NAME)
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
 
-        when (v?.id) {
-            R.id.btnSave -> {
-                prefs.password = inPassword.text.toString()
-                prefs.userId = inUserId.text.toString().toInt()
+        if (requestCode == newWordActivityRequestCode && resultCode == Activity.RESULT_OK) {
+            data?.getStringExtra(NewWordActivity.EXTRA_REPLY)?.let {
+                val word = Word(it)
+                wordViewModel.insert(word)
             }
-            R.id.btnClear -> {
-                prefs.clearValues
-            }
-            R.id.btnShow -> {
-                inUserId.setText(prefs.userId.toString())
-                inPassword.setText(prefs.password)
-            }
-            R.id.btnShowDefault -> {
-                val defaultPrefs = defaultPreference(this)
-                inUserId.setText(defaultPrefs.userId.toString())
-                inPassword.setText(defaultPrefs.password)
-            }
+        } else {
+            Toast.makeText(
+                applicationContext, R.string.empty_not_saved, Toast.LENGTH_LONG
+            ).show()
         }
     }
 
 
 }
 
-object PreferenceHelper {
-    val USER_ID = "USER_ID"
-    val USER_PASSWORD = "PASSWORD"
-
-    fun defaultPreference(context: Context): SharedPreferences =
-        PreferenceManager.getDefaultSharedPreferences(context)
-
-    fun customPreference(context: Context, name: String): SharedPreferences =
-        context.getSharedPreferences(name, Context.MODE_PRIVATE)
-
-    inline fun SharedPreferences.editMe(operation: (SharedPreferences.Editor) -> Unit) {
-        val editMe = edit()
-        operation(editMe)
-        editMe.apply()
-    }
-
-    var SharedPreferences.userId
-        get() = getInt(USER_ID, 0)
-        set(value) {
-            editMe {
-                it.putInt(USER_ID, value)
-            }
-        }
-
-    var SharedPreferences.password
-        get() = getString(USER_PASSWORD, "")
-        set(value) {
-            editMe {
-                it.putString(USER_PASSWORD, value)
-            }
-        }
-
-    var SharedPreferences.clearValues
-        get() = { }
-        set(value) {
-            editMe {
-                it.clear()
-            }
-        }
-}
